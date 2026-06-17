@@ -1,0 +1,17 @@
+numpy
+pandas
+pytorch-lightning
+PyYAML
+regex
+scikit-learn
+scipy
+sentry-sdk
+seqeval
+spacy
+tokenizers
+torch
+torchvision
+tqdm
+transformers
+activations
+dataclasses
