@@ -1,4 +1,5 @@
 import argparse
+import copy
 import json
 import logging
 import os
@@ -303,6 +304,33 @@ def collect_sequences(pred_ids, labels, eval_mask, attention_mask, id2label):
     return y_true, y_pred
 
 
+def collect_prediction_records(pred_ids, labels, eval_mask, id2label, dataset, start_index):
+    records = []
+    imgids = dataset.data_dict.get('imgids', [])
+    tokens_by_sample = dataset.data_dict.get('tokens', [])
+    for i in range(labels.size(0)):
+        sample_index = start_index + i
+        true_ids = labels[i].detach().cpu().tolist()
+        eval_bits = eval_mask[i].detach().cpu().tolist()
+        pred_full = pred_ids[i]
+        gold, pred = [], []
+        for j, keep in enumerate(eval_bits):
+            if keep != 1:
+                continue
+            gold.append(collapse_label(id2label.get(true_ids[j], 'O')))
+            pred.append(collapse_label(id2label.get(pred_full[j], 'O')))
+        records.append(
+            {
+                'split_index': sample_index,
+                'imgid': str(imgids[sample_index]) if sample_index < len(imgids) else str(sample_index),
+                'tokens': tokens_by_sample[sample_index] if sample_index < len(tokens_by_sample) else [],
+                'gold_labels': gold,
+                'pred_labels': pred,
+            }
+        )
+    return records
+
+
 def compute_metrics(y_true, y_pred):
     flat_true = [x for sent in y_true for x in sent]
     flat_pred = [x for sent in y_pred for x in sent]
@@ -472,11 +500,14 @@ def evaluate(
     loss_on_eval_tokens_only=False,
     decode_bias=None,
     class_weights=None,
+    return_predictions=False,
 ):
     model.eval()
     all_true, all_pred = [], []
+    prediction_records = []
     total_loss = 0.0
     steps = 0
+    sample_offset = 0
     with torch.no_grad():
         for batch in loader:
             batch = tuple(t.to(device) if isinstance(t, torch.Tensor) else t for t in batch)
@@ -506,9 +537,23 @@ def evaluate(
             y_true, y_pred = collect_sequences(pred_ids, labels, eval_mask, attention_mask, id2label)
             all_true.extend(y_true)
             all_pred.extend(y_pred)
+            if return_predictions:
+                prediction_records.extend(
+                    collect_prediction_records(
+                        pred_ids,
+                        labels,
+                        eval_mask,
+                        id2label,
+                        loader.dataset,
+                        sample_offset,
+                    )
+                )
+            sample_offset += labels.size(0)
     metrics = compute_metrics(all_true, all_pred)
     metrics['detailed'] = compute_detailed_metrics(all_true, all_pred)
     metrics['loss'] = total_loss / max(steps, 1)
+    if return_predictions:
+        metrics['predictions'] = prediction_records
     return metrics
 
 
@@ -654,6 +699,7 @@ def train_one(args):
         'epoch': None,
         'test_metrics': None,
         'dev_metrics': None,
+        'state_dict': None,
     }
 
     for epoch in range(1, args.num_epochs + 1):
@@ -737,8 +783,51 @@ def train_one(args):
                 'test_metrics': test_metrics,
                 'dev_metrics': dev_metrics,
                 'decode_bias': decode_bias,
+                'state_dict': copy.deepcopy({k: v.detach().cpu() for k, v in model.state_dict().items()}),
             }
             torch.save(model.state_dict(), ckpt_dir / exp_name)
+
+    prediction_path = None
+    if args.export_predictions_dir and best.get('state_dict') is not None:
+        model.load_state_dict(best['state_dict'])
+        model.to(device)
+        pred_metrics = evaluate(
+            model,
+            test_loader,
+            device,
+            id2label,
+            args.model_type,
+            o_label_id=o_label_id,
+            boundary_loss_weight=args.boundary_loss_weight,
+            loss_on_eval_tokens_only=args.loss_on_eval_tokens_only or args.model_type == 'bert_boundary',
+            decode_bias=best.get('decode_bias'),
+            class_weights=class_weights,
+            return_predictions=True,
+        )
+        export_dir = Path(args.export_predictions_dir)
+        export_dir.mkdir(parents=True, exist_ok=True)
+        prediction_path = export_dir / f'{exp_name}_test_predictions.jsonl'
+        with prediction_path.open('w', encoding='utf-8') as f:
+            for record in pred_metrics.pop('predictions'):
+                record.update(
+                    {
+                        'experiment_name': exp_name,
+                        'dataset_name': args.dataset_name,
+                        'model_type': args.model_type,
+                        'bert_name': args.bert_name,
+                        'seed': args.seed,
+                        'best_epoch': best['epoch'],
+                        'decode_bias': best.get('decode_bias'),
+                        'num_epochs': args.num_epochs,
+                        'batch_size': args.batch_size,
+                        'lr': args.lr,
+                        'warmup_ratio': args.warmup_ratio,
+                        'max_seq': args.max_seq,
+                        'paired_context': args.paired_context,
+                        'context_max_tokens': args.context_max_tokens,
+                    }
+                )
+                f.write(json.dumps(record, ensure_ascii=False) + '\n')
 
     result = {
         'experiment_name': exp_name,
@@ -763,6 +852,7 @@ def train_one(args):
         'best_decode_bias': best.get('decode_bias'),
         'paired_context': args.paired_context,
         'context_max_tokens': args.context_max_tokens,
+        'prediction_path': str(prediction_path) if prediction_path else None,
     }
     out_path = report_dir / f'{exp_name}.json'
     out_path.write_text(json.dumps(result, indent=2), encoding='utf-8')
@@ -793,6 +883,7 @@ def parse_args():
     parser.add_argument('--decode_o_bias_step', type=float, default=0.25)
     parser.add_argument('--paired_context', choices=['none', 'auto', 'text_ner', 'caption_ner'], default='none')
     parser.add_argument('--context_max_tokens', type=int, default=48)
+    parser.add_argument('--export_predictions_dir', default=None)
     return parser.parse_args()
 
 

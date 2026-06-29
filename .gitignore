@@ -13,6 +13,12 @@ logs/
 reports/
 wandb/
 runs/
+raw_outputs/
+api_outputs/
+*_raw_outputs.jsonl
+*_errors.log
+*_error.log
+*_smoke_outputs.jsonl
 
 *.pt
 *.pth
@@ -25,6 +31,8 @@ dist/
 *.egg-info/
 
 paper_submission/
+multimedia_systems_submission/
+multimedia_systems_upload_package/
 *.aux
 *.bbl
 *.blg

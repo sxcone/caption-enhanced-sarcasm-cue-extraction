@@ -18,7 +18,8 @@ The repository intentionally includes only code and training data. Manuscript fi
 ├── part2_img_364/                         # validation image split
 ├── part3_img_420/                         # additional image split retained for completeness
 ├── part5_img_394/                         # test image split
-└── SRTP/HVFormer-main/HVFormer-main/       # training and model code
+├── SRTP/HVFormer-main/HVFormer-main/       # training and model code
+└── reproducibility/                        # public audit/evaluation scripts and small summaries
 ```
 
 ## Dataset
@@ -78,6 +79,14 @@ python run.py \
   --num_epochs 20 \
   --seed 1
 ```
+
+## Reproducibility utilities
+
+Additional experiment and audit scripts are provided under `reproducibility/`.
+These scripts cover dataset statistics, annotation agreement, boundary-calibrated cue extraction, cue-prior calibration, strong encoder search, deduplicated-test sensitivity analysis, caption-quality diagnostics and VLM prompt diagnostics.
+
+The `reproducibility/results_summary/` directory contains compact public summaries used to document the reported experiments.
+It does not contain paper source files, submitted PDFs, checkpoints, full logs, private API keys or raw API provider responses.
 
 Run text-side cue extraction:
 
