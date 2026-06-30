@@ -1,30 +1,25 @@
 # Caption-enhanced Sarcasm Cue Extraction
 
-This repository contains the training code and dataset files for multimodal sarcasm cue extraction.
+This repository contains the training and evaluation code for multimodal sarcasm cue extraction.
 
 The task is formulated as BIO sequence labelling over two channels:
 
 - `text_ner`: cue extraction from the original post text.
 - `caption_ner`: cue extraction from generated image captions.
 
-The repository intentionally includes only code and training data. Manuscript files, paper figures, result tables, checkpoints, logs and temporary build artifacts are not included.
+The repository intentionally includes code only. Dataset files, image files, manuscript files, paper figures, result tables, checkpoints, logs and temporary build artifacts are not included.
 
 ## Repository layout
 
 ```text
 .
-├── caption和text/                         # BIO text/caption annotation files
-├── part1_img_580/                         # train image split
-├── part2_img_364/                         # validation image split
-├── part3_img_420/                         # additional image split retained for completeness
-├── part5_img_394/                         # test image split
 ├── SRTP/HVFormer-main/HVFormer-main/       # training and model code
-└── reproducibility/                        # public audit/evaluation scripts and small summaries
+└── reproducibility/                        # public audit/evaluation scripts
 ```
 
 ## Dataset
 
-The released annotation files use a CoNLL-like format:
+The dataset and image files are not distributed in this code repository. The training code expects local BIO files in a CoNLL-like format:
 
 ```text
 IMGID:1
@@ -34,15 +29,6 @@ token<TAB>O
 IMGID:2
 ...
 ```
-
-Splits used by the training code:
-
-| Channel | Train | Dev | Test |
-|---|---|---|---|
-| `text_ner` | `caption和text/text_part1_1000_580.txt` | `caption和text/text_part2_650_364.txt` | `caption和text/text_3545_part5_595_394.txt` |
-| `caption_ner` | `caption和text/caption_3545_part1_1000_580.txt` | `caption和text/caption_part2_650_364.txt` | `caption和text/caption_3545_part5_595_394.txt` |
-
-The split sizes are 1,230 training samples, 263 validation samples and 265 test samples.
 
 Label meanings:
 
@@ -85,8 +71,7 @@ python run.py \
 Additional experiment and audit scripts are provided under `reproducibility/`.
 These scripts cover dataset statistics, annotation agreement, boundary-calibrated cue extraction, cue-prior calibration, strong encoder search, deduplicated-test sensitivity analysis, caption-quality diagnostics and VLM prompt diagnostics.
 
-The `reproducibility/results_summary/` directory contains compact public summaries used to document the reported experiments.
-It does not contain paper source files, submitted PDFs, checkpoints, full logs, private API keys or raw API provider responses.
+The repository does not include result-summary files, raw outputs, paper source files, submitted PDFs, checkpoints, full logs, private API keys or raw API provider responses.
 
 Run text-side cue extraction:
 
@@ -121,5 +106,5 @@ Use `--device cuda` on CUDA machines or `--device cpu` when no accelerator is av
 ## Notes
 
 - Checkpoints, logs and cached model files are excluded from this repository.
-- The image files are provided for research reproduction with the released annotations.
-- If redistribution restrictions apply to a downstream use case, keep the annotations and replace the image files with source identifiers or locally downloaded copies.
+- Dataset and image files are excluded from this repository.
+- Users who run the scripts should provide their own local data paths that follow the expected BIO format.

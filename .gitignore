@@ -13,6 +13,12 @@ logs/
 reports/
 wandb/
 runs/
+caption和text/
+part1_img_580/
+part2_img_364/
+part3_img_420/
+part5_img_394/
+reproducibility/results_summary/
 raw_outputs/
 api_outputs/
 *_raw_outputs.jsonl

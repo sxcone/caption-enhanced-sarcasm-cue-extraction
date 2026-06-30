@@ -1,15 +1,14 @@
-# Reproducibility scripts and public summaries
+# Reproducibility scripts
 
-This directory contains public scripts and small result summaries used to audit and reproduce the cue-extraction experiments.
+This directory contains public scripts used to audit and reproduce the cue-extraction experiments when local data are available.
 
-It intentionally does not include manuscript files, LaTeX sources, submitted PDFs, checkpoints, full training logs, private API keys, or raw API provider responses.
+It intentionally does not include dataset files, image files, result summaries, manuscript files, LaTeX sources, submitted PDFs, checkpoints, full training logs, private API keys, or raw API provider responses.
 
 ## Layout
 
 ```text
 reproducibility/
-├── scripts/           # dataset audits, experiment runners, and evaluation utilities
-└── results_summary/   # small JSON/CSV/MD summaries used for reporting
+└── scripts/           # dataset audits, experiment runners, and evaluation utilities
 ```
 
 ## Main scripts
@@ -27,5 +26,5 @@ reproducibility/
 ## Notes
 
 - API scripts require users to provide their own credentials through environment variables. No API key is stored in this repository.
-- Raw Qwen/VLM outputs are not published here as the primary artifact; only non-sensitive summaries and reproducibility notes are included.
+- Raw Qwen/VLM outputs and result summaries are not published here.
 - Large checkpoints, logs, local model caches, and manuscript build files are excluded by `.gitignore`.
